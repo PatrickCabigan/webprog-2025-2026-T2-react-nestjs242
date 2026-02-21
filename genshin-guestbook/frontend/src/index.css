@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply m-0 p-0 font-sans antialiased bg-gradient-to-br from-genshin-dark via-purple-900 to-genshin-dark min-h-screen text-white;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-genshin-gold text-genshin-dark px-6 py-2 rounded-lg font-medium hover:bg-yellow-500 transition-all duration-200;
+  }
+  
+  .btn-secondary {
+    @apply bg-genshin-teal text-white px-6 py-2 rounded-lg font-medium hover:bg-teal-500 transition-all duration-200;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-genshin-gold transition-all duration-200;
+  }
+  
+  .card {
+    @apply bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:border-genshin-gold transition-all duration-300;
+  }
+}
