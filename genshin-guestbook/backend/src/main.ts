@@ -1,34 +1,55 @@
 import { NestFactory } from '@nestjs/core';
-import { Module, Controller, Get } from '@nestjs/common';
+import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
+import helmet from 'helmet';
 
-@Controller('api')
-class TestController {
-  @Get('guestbook')
-  getGuestbook() {
-    return { message: 'API is working!', timestamp: new Date().toISOString() };
-  }
-
-  @Get('guestbook/stats')
-  getStats() {
-    return { entries: 0, likes: 0, message: 'Stats endpoint working' };
-  }
-}
-
-@Module({
-  imports: [],
-  controllers: [TestController],
-})
-class AppModule {}
+// For Vercel serverless - NO PORT LISTENING!
+let cachedApp;
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  app.enableCors();
-  await app.listen(3000);
-  console.log('Test server running');
+  if (!cachedApp) {
+    const app = await NestFactory.create(AppModule);
+    
+    app.enableCors({
+      origin: '*',
+      credentials: true,
+    });
+    
+    app.useGlobalPipes(new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }));
+    
+    app.use(helmet());
+    app.setGlobalPrefix('api');
+    
+    await app.init();
+    cachedApp = app;
+  }
+  return cachedApp;
 }
 
-if (process.env.VERCEL) {
-  module.exports = bootstrap;
-} else {
-  bootstrap();
+// This is the serverless handler Vercel needs
+export default async function handler(req, res) {
+  try {
+    const app = await bootstrap();
+    const server = app.getHttpAdapter().getInstance();
+    return server(req, res);
+  } catch (error) {
+    console.error('Serverless error:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+// Only listen when running locally
+if (!process.env.VERCEL) {
+  async function localBootstrap() {
+    const app = await NestFactory.create(AppModule);
+    app.enableCors();
+    app.setGlobalPrefix('api');
+    await app.listen(3000);
+    console.log('Local server running on http://localhost:3000');
+  }
+  localBootstrap();
 }
