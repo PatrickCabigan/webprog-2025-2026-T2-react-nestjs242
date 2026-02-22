@@ -7,9 +7,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
   app.enableCors({
-    origin: process.env.FRONTEND_URL || '*',
+    origin: '*',
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   });
   
   app.useGlobalPipes(new ValidationPipe({
@@ -22,14 +21,20 @@ async function bootstrap() {
   
   app.setGlobalPrefix('api');
   
+  // For serverless, don't listen on a port
+  if (process.env.VERCEL) {
+    return app;
+  }
+  
   const port = process.env.PORT || 3001;
   await app.listen(port);
-  
-  console.log(`✨ Genshin Guestbook API running on http://localhost:${port}`);
+  console.log(`Server running on http://localhost:${port}`);
 }
 
-if (process.env.VERCEL) {
-  module.exports = bootstrap;
-} else {
-  bootstrap();
+// Export for Vercel serverless
+export default async function handler(req, res) {
+  const app = await bootstrap();
+  await app.init();
+  const server = app.getHttpAdapter().getInstance();
+  return server(req, res);
 }
