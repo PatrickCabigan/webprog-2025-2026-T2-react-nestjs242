@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { guestbookApi } from '../services/api';
 import { GuestbookEntry, CreateEntryDto, Stats } from '../types';
 import toast from 'react-hot-toast';
@@ -10,8 +10,8 @@ export const useGuestbook = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  // Fetch entries
-  const fetchEntries = async (pageNum = page) => {
+  // Fetch entries - wrapped in useCallback
+  const fetchEntries = useCallback(async (pageNum = page) => {
     try {
       const response = await guestbookApi.getEntries(pageNum, 10);
       if (pageNum === 1) {
@@ -23,27 +23,27 @@ export const useGuestbook = () => {
     } catch (error) {
       toast.error('Failed to fetch entries');
     }
-  };
+  }, [page]);
 
-  // Fetch stats
-  const fetchStats = async () => {
+  // Fetch stats - wrapped in useCallback
+  const fetchStats = useCallback(async () => {
     try {
       const response = await guestbookApi.getStats();
       setStats(response.data);
     } catch (error) {
       console.error('Failed to fetch stats');
     }
-  };
+  }, []);
 
   // Load more entries
-  const loadMore = () => {
+  const loadMore = useCallback(() => {
     if (hasMore) {
       setPage(prev => prev + 1);
     }
-  };
+  }, [hasMore]);
 
   // Create new entry
-  const createEntry = async (data: CreateEntryDto) => {
+  const createEntry = useCallback(async (data: CreateEntryDto) => {
     try {
       const response = await guestbookApi.createEntry(data);
       setEntries(prev => [response.data, ...prev]);
@@ -54,10 +54,10 @@ export const useGuestbook = () => {
       toast.error(error.message || 'Failed to create entry');
       return false;
     }
-  };
+  }, [fetchStats]);
 
   // Like an entry
-  const likeEntry = async (id: string) => {
+  const likeEntry = useCallback(async (id: string) => {
     try {
       const response = await guestbookApi.likeEntry(id);
       setEntries(prev =>
@@ -69,7 +69,7 @@ export const useGuestbook = () => {
     } catch (error) {
       toast.error('Failed to like entry');
     }
-  };
+  }, []);
 
   // Initial load
   useEffect(() => {
@@ -79,14 +79,14 @@ export const useGuestbook = () => {
       setLoading(false);
     };
     loadData();
-  }, []);
+  }, [fetchEntries, fetchStats]); // Dependencies added
 
   // Load more when page changes
   useEffect(() => {
     if (page > 1) {
       fetchEntries(page);
     }
-  }, [page]);
+  }, [page, fetchEntries]); // Dependencies added
 
   return {
     entries,
