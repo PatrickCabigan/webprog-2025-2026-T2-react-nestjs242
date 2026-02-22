@@ -9,6 +9,7 @@ async function bootstrap() {
   app.enableCors({
     origin: '*',
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   });
   
   app.useGlobalPipes(new ValidationPipe({
@@ -18,23 +19,26 @@ async function bootstrap() {
   }));
   
   app.use(helmet());
-  
   app.setGlobalPrefix('api');
   
-  // For serverless, don't listen on a port
-  if (process.env.VERCEL) {
-    return app;
-  }
-  
-  const port = process.env.PORT || 3001;
-  await app.listen(port);
-  console.log(`Server running on http://localhost:${port}`);
+  return app;
 }
 
-// Export for Vercel serverless
+// For Vercel serverless
+let cachedApp;
+
 export default async function handler(req, res) {
-  const app = await bootstrap();
-  await app.init();
-  const server = app.getHttpAdapter().getInstance();
-  return server(req, res);
+  try {
+    if (!cachedApp) {
+      const app = await bootstrap();
+      await app.init();
+      cachedApp = app;
+    }
+    
+    const server = cachedApp.getHttpAdapter().getInstance();
+    return server(req, res);
+  } catch (error) {
+    console.error('Serverless error:', error);
+    res.status(500).json({ error: error.message });
+  }
 }
